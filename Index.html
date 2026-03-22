@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon Jardin — Sanguinet</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --pine: #2D5016; --sage: #6B8F47; --sand: #E8D9B5;
+    --cream: #F7F2E8; --bark: #3D2B1A; --accent: #C4522A; --text: #2C2416;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--cream); color:var(--text); font-family:'DM Sans',sans-serif; min-height:100vh; overflow-x:hidden; }
+  body::before { content:''; position:fixed; inset:0; background-image:radial-gradient(ellipse at 20% 0%,rgba(107,143,71,.08) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(139,105,20,.1) 0%,transparent 50%); pointer-events:none; z-index:0; }
+  .app { max-width:480px; margin:0 auto; padding:0 0 40px; position:relative; z-index:1; }
+  header { background:var(--pine); padding:28px 24px 24px; position:relative; overflow:hidden; }
+  header::after { content:''; position:absolute; bottom:-1px; left:0; right:0; height:20px; background:var(--cream); clip-path:ellipse(55% 100% at 50% 100%); }
+  .header-pine { position:absolute; right:-10px; top:-5px; font-size:90px; opacity:.08; transform:rotate(10deg); line-height:1; }
+  header h1 { font-family:'Playfair Display',serif; font-size:26px; color:var(--sand); line-height:1.2; position:relative; }
+  header h1 em { font-style:italic; color:#A8C87A; }
+  header p { margin-top:6px; font-size:12px; color:rgba(232,217,181,.65); letter-spacing:.08em; text-transform:uppercase; font-weight:500; position:relative; }
+  .profile-card { margin:16px 20px 0; background:white; border-radius:16px; overflow:hidden; border:1.5px solid rgba(45,80,22,.1); }
+  .profile-header { background:rgba(45,80,22,.05); padding:10px 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; }
+  .profile-header-title { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:var(--pine); }
+  .profile-toggle { font-size:11px; color:#999; transition:transform .2s; }
+  .profile-toggle.open { transform:rotate(180deg); }
+  .profile-body { display:none; padding:14px 16px; }
+  .profile-body.open { display:block; }
+  .profile-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .profile-item { background:var(--cream); border-radius:10px; padding:10px 12px; }
+  .profile-item-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:#999; margin-bottom:4px; }
+  .profile-item-value { font-size:12px; color:var(--bark); line-height:1.4; font-weight:500; }
+  .profile-item.full { grid-column:1/-1; }
+  .avoid-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:4px; }
+  .avoid-tag { background:#FDDEDE; color:#8B2020; border-radius:100px; padding:3px 9px; font-size:11px; font-weight:500; }
+  .zones-section { padding:16px 20px 0; }
+  .zones-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:#999; margin-bottom:10px; }
+  .zones-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .zone-btn { padding:12px 11px; border-radius:14px; border:2px solid rgba(0,0,0,.08); background:white; cursor:pointer; transition:all .2s; text-align:left; width:100%; }
+  .zone-btn:hover { border-color:var(--sage); }
+  .zone-btn.active { border-color:var(--pine); background:rgba(45,80,22,.05); }
+  .zone-icon { font-size:20px; display:block; margin-bottom:5px; }
+  .zone-name { font-size:12px; font-weight:600; color:var(--bark); display:block; margin-bottom:2px; }
+  .zone-desc { font-size:10px; color:#999; line-height:1.3; }
+  .zone-btn.active .zone-name { color:var(--pine); }
+  .upload-section { padding:16px 20px 0; }
+  .upload-zone { border:2.5px dashed rgba(45,80,22,.25); border-radius:20px; padding:28px 20px; text-align:center; cursor:pointer; transition:all .3s; background:white; position:relative; overflow:hidden; }
+  .upload-zone:hover,.upload-zone.drag-over { border-color:var(--sage); background:rgba(107,143,71,.04); transform:translateY(-1px); box-shadow:0 8px 30px rgba(45,80,22,.1); }
+  .upload-zone.has-image { border-style:solid; border-color:var(--sage); padding:0; }
+  .upload-icon { font-size:44px; margin-bottom:10px; display:block; }
+  .upload-label { font-family:'Playfair Display',serif; font-size:17px; color:var(--bark); margin-bottom:5px; }
+  .upload-sublabel { font-size:12px; color:#999; line-height:1.5; }
+  #fileInput { display:none; }
+  #preview { width:100%; max-height:280px; object-fit:cover; border-radius:17px; display:none; }
+  .preview-overlay { position:absolute; bottom:12px; right:12px; background:rgba(255,255,255,.9); backdrop-filter:blur(8px); border-radius:100px; padding:6px 14px; font-size:11px; font-weight:500; color:var(--pine); cursor:pointer; border:1.5px solid rgba(45,80,22,.2); display:none; }
+  .actions { display:flex; gap:10px; padding:12px 20px 0; }
+  .btn-camera { flex:1; display:flex; align-items:center; justify-content:center; gap:8px; background:var(--pine); color:var(--sand); border:none; border-radius:14px; padding:15px 20px; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:500; cursor:pointer; transition:all .2s; }
+  .btn-camera:hover { background:#1e3a0e; transform:translateY(-1px); box-shadow:0 6px 20px rgba(45,80,22,.3); }
+  .btn-camera svg { width:18px; height:18px; }
+  .btn-gallery { display:flex; align-items:center; justify-content:center; gap:7px; background:white; color:var(--bark); border:2px solid rgba(61,43,26,.15); border-radius:14px; padding:15px 18px; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500; cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .btn-gallery:hover { border-color:var(--sage); color:var(--pine); }
+  .btn-analyze { margin:16px 20px 0; width:calc(100% - 40px); display:none; align-items:center; justify-content:center; gap:10px; background:var(--accent); color:white; border:none; border-radius:16px; padding:18px; font-family:'Playfair Display',serif; font-size:17px; font-style:italic; cursor:pointer; transition:all .25s; box-shadow:0 4px 20px rgba(196,82,42,.3); }
+  .btn-analyze:hover:not(:disabled) { background:#a8431f; transform:translateY(-2px); box-shadow:0 8px 28px rgba(196,82,42,.4); }
+  .loading { display:none; padding:30px 20px; text-align:center; }
+  .loading-pine { font-size:40px; animation:sway 2s ease-in-out infinite; display:block; margin-bottom:12px; }
+  @keyframes sway { 0%,100%{transform:rotate(-5deg)} 50%{transform:rotate(5deg)} }
+  .loading p { font-family:'Playfair Display',serif; font-style:italic; color:var(--pine); font-size:15px; }
+  .loading-dots::after { content:''; animation:dots 1.5s steps(4,end) infinite; }
+  @keyframes dots { 0%{content:''} 25%{content:'.'} 50%{content:'..'} 75%{content:'...'} }
+  .result { display:none; margin:20px 20px 0; background:white; border-radius:20px; overflow:hidden; box-shadow:0 4px 30px rgba(0,0,0,.07); }
+  .result-header { padding:18px 20px 14px; border-bottom:1.5px solid rgba(0,0,0,.06); display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .result-plant-name { font-family:'Playfair Display',serif; font-size:20px; color:var(--bark); line-height:1.2; }
+  .result-plant-latin { font-family:'Playfair Display',serif; font-style:italic; font-size:13px; color:#999; margin-top:2px; }
+  .compat-badge { flex-shrink:0; padding:7px 14px; border-radius:100px; font-size:12px; font-weight:600; }
+  .compat-yes { background:#D4EDDA; color:#2D6A38; }
+  .compat-no { background:#FDDEDE; color:#8B2020; }
+  .compat-maybe { background:#FFF3CD; color:#7A5C00; }
+  .result-body { padding:18px 20px; }
+  .result-section { margin-bottom:18px; }
+  .result-section:last-child { margin-bottom:0; }
+  .section-title { display:flex; align-items:center; gap:7px; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:#999; margin-bottom:8px; }
+  .section-title span { font-size:16px; }
+  .section-content { font-size:14px; line-height:1.65; color:var(--text); }
+  .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+  .info-chip { background:var(--cream); border-radius:10px; padding:10px 12px; }
+  .info-chip-label { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.08em; color:#aaa; margin-bottom:3px; }
+  .info-chip-value { font-size:13px; font-weight:500; color:var(--bark); }
+  .zone-tag { display:inline-flex; align-items:center; gap:5px; background:rgba(45,80,22,.08); color:var(--pine); border-radius:100px; padding:4px 12px; font-size:12px; font-weight:500; margin-top:8px; }
+  .period-bar { display:flex; gap:3px; flex-wrap:wrap; }
+  .month-chip { padding:4px 9px; border-radius:6px; font-size:11px; font-weight:500; background:rgba(107,143,71,.1); color:var(--pine); }
+  .month-chip.active { background:var(--sage); color:white; }
+  .month-chip.now { background:var(--pine); color:var(--sand); }
+  .verdict-box { background:rgba(107,143,71,.08); border:1.5px solid rgba(107,143,71,.2); border-radius:12px; padding:12px 14px; font-size:14px; line-height:1.6; color:var(--pine); font-weight:500; margin-top:10px; }
+  .verdict-box.warning { background:rgba(196,82,42,.06); border-color:rgba(196,82,42,.2); color:var(--accent); }
+  .chips-warning { background:#FFF3CD; border:1.5px solid #F0C040; border-radius:10px; padding:10px 14px; font-size:13px; color:#7A5C00; display:flex; align-items:flex-start; gap:8px; margin-top:10px; }
+  .alternatives { padding:14px 20px; border-top:1.5px solid rgba(0,0,0,.06); background:rgba(232,217,181,.2); }
+  .alt-title { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.1em; color:#999; margin-bottom:10px; }
+  .alt-list { display:flex; flex-direction:column; gap:8px; }
+  .alt-item { background:white; border-radius:10px; padding:10px 14px; font-size:13px; border:1.5px solid rgba(0,0,0,.06); }
+  .alt-name { font-weight:600; color:var(--pine); }
+  .alt-why { font-size:12px; color:#777; margin-top:2px; line-height:1.4; }
+  .btn-reset { display:none; align-items:center; justify-content:center; gap:8px; margin:16px 20px 0; width:calc(100% - 40px); background:transparent; border:2px solid rgba(61,43,26,.15); border-radius:14px; padding:13px; color:#888; font-family:'DM Sans',sans-serif; font-size:13px; cursor:pointer; transition:all .2s; }
+  .btn-reset:hover { border-color:var(--sage); color:var(--pine); }
+  .error-box { display:none; margin:16px 20px 0; background:#FEF2F2; border:1.5px solid #FCA5A5; border-radius:14px; padding:16px; font-size:14px; color:#991B1B; line-height:1.5; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="header-pine">🌲</div>
+    <h1>Mon Jardin<br><em>Sanguinet</em></h1>
+    <p>Conseiller plantes · Landes</p>
+  </header>
+
+  <div class="profile-card">
+    <div class="profile-header" onclick="toggleProfile()">
+      <div class="profile-header-title">🌿 Profil de mon jardin</div>
+      <div class="profile-toggle" id="profileToggle">▼</div>
+    </div>
+    <div class="profile-body" id="profileBody">
+      <div class="profile-grid">
+        <div class="profile-item"><div class="profile-item-label">📍 Localisation</div><div class="profile-item-value">Sanguinet (40)<br>Bord de lac landais</div></div>
+        <div class="profile-item"><div class="profile-item-label">📐 Surface</div><div class="profile-item-value">500 – 1 000 m²</div></div>
+        <div class="profile-item"><div class="profile-item-label">🪨 Sol</div><div class="profile-item-value">Sableux, acide pH 4.5–5.5, très drainant</div></div>
+        <div class="profile-item"><div class="profile-item-label">🌡️ Climat</div><div class="profile-item-value">Océanique landais<br>Étés chauds & secs</div></div>
+        <div class="profile-item"><div class="profile-item-label">💧 Arrosage</div><div class="profile-item-value">Aucun — résistance sécheresse obligatoire</div></div>
+        <div class="profile-item"><div class="profile-item-label">💨 Vent</div><div class="profile-item-value">Modérément exposé (ouest)</div></div>
+        <div class="profile-item full"><div class="profile-item-label">✅ Indicateurs vivants</div><div class="profile-item-value">Fougères · Bruyères · Callunes · Mimosas · Genêts · Muguet spontané (zone nord)</div></div>
+        <div class="profile-item full"><div class="profile-item-label">🚫 À éviter</div><div class="avoid-tags"><span class="avoid-tag">☠️ Toxique pour Chips</span><span class="avoid-tag">✂️ Taille fréquente</span><span class="avoid-tag">🥶 Fragile au gel</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="zones-section">
+    <div class="zones-label">📍 Dans quelle zone tu plantes ?</div>
+    <div class="zones-grid">
+      <button class="zone-btn active" id="zone-pins" onclick="selectZone('pins')">
+        <span class="zone-icon">🌲</span>
+        <span class="zone-name">Sous les pins</span>
+        <span class="zone-desc">Ombre filtrée, aiguilles, sol très acide</span>
+      </button>
+      <button class="zone-btn" id="zone-chenes" onclick="selectZone('chenes')">
+        <span class="zone-icon">🍂</span>
+        <span class="zone-name">Sous les chênes</span>
+        <span class="zone-desc">Ombre filtrée, feuilles caduques, sol enrichi</span>
+      </button>
+      <button class="zone-btn" id="zone-soleil" onclick="selectZone('soleil')">
+        <span class="zone-icon">☀️</span>
+        <span class="zone-name">Plein sud</span>
+        <span class="zone-desc">Soleil toute la journée, très chaud & sec</span>
+      </button>
+      <button class="zone-btn" id="zone-nord" onclick="selectZone('nord')">
+        <span class="zone-icon">🌸</span>
+        <span class="zone-name">Zone nord</span>
+        <span class="zone-desc">Soleil soir seulement, frais, muguet spontané</span>
+      </button>
+      <button class="zone-btn" id="zone-cloture" onclick="selectZone('cloture')" style="grid-column:1/-1">
+        <span class="zone-icon">🌿</span>
+        <span class="zone-name">Clôture grillage (tout le tour)</span>
+        <span class="zone-desc">Expositions N/S/E/O · Grimpantes · Fleurs, biodiversité, persistant</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="upload-section">
+    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+      <span class="upload-icon">📸</span>
+      <div class="upload-label">Photo de la plante</div>
+      <div class="upload-sublabel">Touche pour choisir une photo<br>ou glisse-dépose ici</div>
+      <img id="preview" alt="Aperçu">
+      <div class="preview-overlay" id="previewOverlay" onclick="changePhoto(event)">✏️ Changer</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+
+  <div class="actions">
+    <button class="btn-camera" onclick="openCamera()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+        <circle cx="12" cy="13" r="4"/>
+      </svg>
+      Prendre une photo
+    </button>
+    <button class="btn-gallery" onclick="openGallery()">🖼️ Galerie</button>
+  </div>
+
+  <button class="btn-analyze" id="btnAnalyze" onclick="analyzePlant()">🔍 Analyser cette plante</button>
+
+  <div class="loading" id="loading">
+    <span class="loading-pine">🌿</span>
+    <p class="loading-dots">Analyse en cours</p>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+  <div class="result" id="result"></div>
+  <button class="btn-reset" id="btnReset" onclick="resetApp()">↩ Analyser une autre plante</button>
+</div>
+
+<script>
+let currentImageBase64 = null;
+let selectedZone = 'pins';
+const MONTHS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+const currentMonth = new Date().getMonth();
+
+const ZONES = {
+  pins: { label:"Sous les pins (ombre filtrée)", icon:"🌲", desc:"Sous pins maritimes, ombre filtrée et tachetée. Sol très acide (pH 4.5–5), sec en été, couvert d'aiguilles en décomposition. Concurrence racinaire des pins. Aucun arrosage possible." },
+  chenes: { label:"Sous les chênes (ombre filtrée)", icon:"🍂", desc:"Sous chênes caducs, ombre filtrée variable selon saison. Sol enrichi par la décomposition des feuilles, légèrement moins acide que sous les pins. Plus d'humidité résiduelle. Concurrence racinaire modérée." },
+  soleil: { label:"Zone plein sud (ensoleillée)", icon:"☀️", desc:"Exposition plein sud, ensoleillement maximal toute la journée. Sol sableux extrêmement drainant, très chaud et sec en été. Aucun arrosage. Seules les plantes xérophytes ou méditerranéennes résistantes conviennent." },
+  nord: { label:"Zone nord (fraîche & ombragée)", icon:"🌸", desc:"Exposition nord, soleil uniquement en fin de journée en été. Zone la plus fraîche et humide. Le muguet s'y est installé spontanément — indicateur d'un sol frais, légèrement moins acide, avec bonne humidité résiduelle. Idéale pour plantes de sous-bois frais." },
+  cloture: { label:"Clôture grillage (tout le tour)", icon:"🌿", desc:"Grillage faisant le tour du jardin, expositions variées (nord, sud, est, ouest). Support pour plantes grimpantes. Objectifs : fleurs et couleurs, attirer oiseaux et insectes, feuillage persistant toute l'année. Sol sableux et acide en pied de clôture. Aucun arrosage." }
+};
+
+function toggleProfile() {
+  document.getElementById('profileBody').classList.toggle('open');
+  document.getElementById('profileToggle').classList.toggle('open');
+}
+
+function selectZone(z) {
+  selectedZone = z;
+  document.querySelectorAll('.zone-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('zone-' + z).classList.add('active');
+}
+
+document.getElementById('fileInput').addEventListener('change', e => { if (e.target.files[0]) loadImage(e.target.files[0]); });
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]); });
+
+function openCamera() { const i = document.getElementById('fileInput'); i.setAttribute('capture','environment'); i.click(); }
+function openGallery() { const i = document.getElementById('fileInput'); i.removeAttribute('capture'); i.click(); }
+function changePhoto(e) { e.stopPropagation(); openGallery(); }
+
+function loadImage(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    currentImageBase64 = e.target.result.split(',')[1];
+    const preview = document.getElementById('preview');
+    preview.src = e.target.result; preview.style.display = 'block';
+    uploadZone.classList.add('has-image');
+    document.querySelector('.upload-icon').style.display = 'none';
+    document.querySelector('.upload-label').style.display = 'none';
+    document.querySelector('.upload-sublabel').style.display = 'none';
+    document.getElementById('previewOverlay').style.display = 'flex';
+    document.getElementById('btnAnalyze').style.display = 'flex';
+    document.getElementById('result').style.display = 'none';
+    document.getElementById('btnReset').style.display = 'none';
+    document.getElementById('errorBox').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+async function analyzePlant() {
+  if (!currentImageBase64) return;
+  document.getElementById('btnAnalyze').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  document.getElementById('btnReset').style.display = 'none';
+
+  const zone = ZONES[selectedZone];
+  const mois = MONTHS[currentMonth];
+  const saison = getSaison(currentMonth);
+
+  const prompt = `Tu es un expert horticole spécialisé dans les jardins des Landes. Analyse cette photo et réponds UNIQUEMENT en JSON valide, sans texte avant ni après, sans balises markdown.
+
+PROFIL DU JARDIN :
+- Localisation : Sanguinet (40340), bord du lac de Sanguinet, Landes
+- Sol : sableux, très drainant, acide pH 4.5–5.5, pauvre, riche en aiguilles de pin
+- Climat : océanique landais, hivers doux (gel rare, -5°C min possible), étés très chauds et secs
+- Arrosage : AUCUN — plantes résistantes à la sécheresse uniquement
+- Vent : modérément exposé au vent d'ouest
+- Plantes déjà présentes et prospères : fougères, bruyères, callunes, mimosas, genêts, muguet spontané (zone nord)
+- À éviter absolument : plantes toxiques pour les chats (chat nommé Chips), plantes à taille fréquente, plantes fragiles au gel
+- Objectifs : biodiversité, faune locale, entretien minimal
+
+ZONE CHOISIE : ${zone.label}
+Conditions : ${zone.desc}
+Mois actuel : ${mois} (${saison})
+
+JSON attendu :
+{
+  "nom_commun": "Nom français",
+  "nom_latin": "Nom scientifique",
+  "compatible_zone": "oui" | "non" | "peut-etre",
+  "badge_texte": "✅ Parfaite pour cette zone" | "⚠️ Avec précautions" | "❌ Déconseillée ici",
+  "exposition": "Plein soleil / Mi-ombre / Ombre / Polyvalente",
+  "sol_requis": "Sol idéal en 5 mots max",
+  "arrosage_ete": "Excellente / Bonne / Moyenne / Faible",
+  "gel": "Rustique jusqu'à -X°C",
+  "taille": "Fréquence courte",
+  "hauteur_adulte": "Hauteur à maturité",
+  "adaptation": "2-3 phrases sur l'adaptation au sol landais et à la zone",
+  "toxique_chat": true | false,
+  "toxique_detail": "Si toxique : détail danger pour chat (vide sinon)",
+  "periode_plantation": [numéros de mois idéaux],
+  "verdict_periode": "Conseil court sur ${mois}",
+  "conseil": "Conseil pratique précis pour cette zone (2-3 phrases)",
+  "alternatives": [
+    {"nom": "Nom", "latin": "Nom latin", "pourquoi": "Raison courte"},
+    {"nom": "Nom", "latin": "Nom latin", "pourquoi": "Raison courte"},
+    {"nom": "Nom", "latin": "Nom latin", "pourquoi": "Raison courte"}
+  ]
+}`;
+
+  try {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1500,
+        messages: [{ role: "user", content: [
+          { type: "image", source: { type: "base64", media_type: "image/jpeg", data: currentImageBase64 } },
+          { type: "text", text: prompt }
+        ]}]
+      })
+    });
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+    const clean = data.content[0].text.trim().replace(/```json|```/g,'').trim();
+    displayResult(JSON.parse(clean));
+  } catch (err) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('btnAnalyze').style.display = 'flex';
+    const eb = document.getElementById('errorBox');
+    eb.style.display = 'block';
+    eb.textContent = "Erreur lors de l'analyse. Vérifiez votre connexion et réessayez. (" + err.message + ")";
+  }
+}
+
+function displayResult(p) {
+  document.getElementById('loading').style.display = 'none';
+  const compatClass = p.compatible_zone === 'oui' ? 'compat-yes' : p.compatible_zone === 'non' ? 'compat-no' : 'compat-maybe';
+  const periodeOk = p.periode_plantation && p.periode_plantation.includes(currentMonth + 1);
+  const zone = ZONES[selectedZone];
+
+  const monthsHTML = p.periode_plantation && p.periode_plantation.length
+    ? `<div class="period-bar">` + MONTHS.map((m,i) => {
+        const cls = 'month-chip' + (i === currentMonth && p.periode_plantation.includes(i+1) ? ' now' : p.periode_plantation.includes(i+1) ? ' active' : '');
+        return `<span class="${cls}">${m}</span>`;
+      }).join('') + `</div>` : '';
+
+  const chipsHTML = p.toxique_chat ? `<div class="chips-warning"><span>🐱⚠️</span><div><strong>Attention Chips !</strong> ${p.toxique_detail || "Plante toxique pour les chats."}</div></div>` : '';
+
+  const altHTML = p.alternatives && p.alternatives.length
+    ? `<div class="alternatives"><div class="alt-title">🔄 Alternatives adaptées à cette zone</div><div class="alt-list">${p.alternatives.map(a=>`<div class="alt-item"><div class="alt-name">${a.nom} <span style="font-weight:400;color:#aaa;font-size:11px;font-style:italic">${a.latin||''}</span></div><div class="alt-why">${a.pourquoi}</div></div>`).join('')}</div></div>` : '';
+
+  document.getElementById('result').innerHTML = `
+    <div class="result-header">
+      <div>
+        <div class="result-plant-name">${p.nom_commun}</div>
+        <div class="result-plant-latin">${p.nom_latin}</div>
+        <div class="zone-tag">${zone.icon} ${zone.label}</div>
+      </div>
+      <div class="compat-badge ${compatClass}">${p.badge_texte}</div>
+    </div>
+    <div class="result-body">
+      <div class="result-section">
+        <div class="section-title"><span>📋</span> Fiche rapide</div>
+        <div class="info-grid">
+          <div class="info-chip"><div class="info-chip-label">☀️ Exposition</div><div class="info-chip-value">${p.exposition}</div></div>
+          <div class="info-chip"><div class="info-chip-label">💧 Sécheresse été</div><div class="info-chip-value">${p.arrosage_ete}</div></div>
+          <div class="info-chip"><div class="info-chip-label">🥶 Résistance gel</div><div class="info-chip-value">${p.gel}</div></div>
+          <div class="info-chip"><div class="info-chip-label">✂️ Taille</div><div class="info-chip-value">${p.taille}</div></div>
+          <div class="info-chip"><div class="info-chip-label">📏 Hauteur adulte</div><div class="info-chip-value">${p.hauteur_adulte}</div></div>
+          <div class="info-chip"><div class="info-chip-label">🪨 Sol idéal</div><div class="info-chip-value">${p.sol_requis}</div></div>
+        </div>
+      </div>
+      <div class="result-section">
+        <div class="section-title"><span>🌱</span> Adaptation sol landais & zone</div>
+        <div class="section-content">${p.adaptation}</div>
+        ${chipsHTML}
+      </div>
+      <div class="result-section">
+        <div class="section-title"><span>📅</span> Période idéale d'achat & plantation</div>
+        ${monthsHTML}
+        <div class="verdict-box ${periodeOk ? '' : 'warning'}">${p.verdict_periode}</div>
+      </div>
+      <div class="result-section">
+        <div class="section-title"><span>🌿</span> Conseil pour cette zone</div>
+        <div class="section-content">${p.conseil}</div>
+      </div>
+    </div>
+    ${altHTML}
+  `;
+
+  document.getElementById('result').style.display = 'block';
+  document.getElementById('btnReset').style.display = 'flex';
+  document.getElementById('result').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function resetApp() {
+  currentImageBase64 = null;
+  document.getElementById('preview').src = ''; document.getElementById('preview').style.display = 'none';
+  uploadZone.classList.remove('has-image');
+  document.querySelector('.upload-icon').style.display = 'block';
+  document.querySelector('.upload-label').style.display = 'block';
+  document.querySelector('.upload-sublabel').style.display = 'block';
+  document.getElementById('previewOverlay').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('btnAnalyze').style.display = 'none';
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('btnReset').style.display = 'none';
+  document.getElementById('errorBox').style.display = 'none';
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+function getSaison(m) {
+  if ([2,3,4].includes(m)) return 'printemps';
+  if ([5,6,7].includes(m)) return 'été';
+  if ([8,9,10].includes(m)) return 'automne';
+  return 'hiver';
+}
+</script>
+</body>
+</html>
